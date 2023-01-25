@@ -44,8 +44,7 @@ Get ϕ₁ factor
 """
 function phi1(fc′::Real) 
     ϕ1 = 0.85 - 0.05 * (fc′ - 28) / 7
-
-    return clamp(0.65, ϕ1, 0.85)
+    return clamp(ϕ1, 0.65, 0.85)
 end
 
 """
