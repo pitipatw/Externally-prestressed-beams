@@ -1,0 +1,19 @@
+{
+	"folders": [
+		{
+			"path": "../../Julia/Topology Opt"
+		},
+		{
+			"path": "../../Julia/TopOpt.jl-master"
+		},
+		{
+			"path": "../../4450 - Optimization Design of Structures/Project/Python"
+		},
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"julia.environmentPath": "c:\\Users\\pitipatw\\OneDrive - Massachusetts Institute of Technology\\Desktop\\MIT\\Git\\Externally-prestressed-beams"
+	}
+}

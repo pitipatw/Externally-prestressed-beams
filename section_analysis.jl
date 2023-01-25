@@ -18,8 +18,9 @@ PTsteelᵣ= (9,0,0) #dia mm
 PTsteel_area = pi.*(PTsteelᵣ.^2)./4
 
 # Postion of the vertical axis relative section's centroid
+# 1.2 Changes PTpos to ecc, from the "Eccentricity"
 # aka e : eccentricity [ratio]
-PTpos   = (80,-5,-5) # mm 
+ecc   = (80,-5,-5) # mm 
 # "Should" be symmetrical such that e2 = e3 = e1*cos60
 # Indexing
 # ................
@@ -31,11 +32,18 @@ fpu     = (1860,1860,1860) #MPa
 steel_modulus = 200000 #MPa
 
 # load detail
-DL = 0.0070 # [N/mm²] = 7kPa
+DL = 0.0070 # [N/mm²] = 7kPa  #could use the actual one
 LL = 0.0048 # [N/mm²] = 4.8kPa
 # buidling detail
 BayDepth = 2000 # [mm]
 SpanLength = 3000 # [mm]
+
+w_dead = BayDepth*DL
+w_live = BayDepth*LL
+w_total = w_dead + w_live
+M_dead  = w_dead*SpanLength^2/8
+M_total = w_total*SpanLength^2/8
+
 
 if high_strength
     temp1 = (3300*(fc′+1000)^0.5 +6900)*(ρ_concrete/2300)^1.5
@@ -60,7 +68,8 @@ st = I/ct ; sb = I/cb #mm
 if Ø₁ > 0.85 ; Ø₁ = 0.85
 elseif Ø₁ <0.65 ; Ø₁ = 0.65 ;end
 Force_concrete = 0.85*fc′*Total_area/1000 #[kN]
-Force_steel = sum(fpe.*PTsteel_area)/1000 #[kN]
+Force_steel_each = (fpe.*PTsteel_area)./1000 #[kN]
+Force_steel = sum(Force_steel_each) #[kN]
 Axial_capacity = Force_concrete + Force_steel #[kN]
 Factored_AxialCap = 0.65*0.8*Axial_capacity #[kN]
 
@@ -84,30 +93,27 @@ Ext_steel_force = sum(fps.*PTsteel_area)
 target = Ext_steel_force
 n = size(section_division, 1)
 println(n)
-tol = 1
-i = 0
-target_area = Aps*fps/0.85/fc′
+target_area = sum(PTsteel_area.*fps./fc′./0.85)
 check = false
-for i = 1:n
-    i +=1 
+cen_ind = 1
+for i in 1:n
     comp_area = section_division[i]
     tol = abs(comp_area - target_area)/target_area
     if tol<0.003
-        check = true
+        global check = true
+        global cen_ind = i
         break
     end
 end
 
-if !check
-    println("Warning Insufficient Xsection Size")
-end
+if !check; println("Warning Insufficient Xsection Size");end
 
-
-centroid = section_centroid[i] 
-arm = PTpos .- centroid # [mm] tuple of lenght of moment arm
-strain = fps/E
+centroid = section_centroid[cen_ind] 
+arm = ecc .- centroid # [mm] tuple of lenght of moment arm
+strain = fps./concrete_modulus
 temp1 = 0.65 .+ 0.25 .*(strain.-0.002)./0.003
 n = size(temp1,1)
+Ø₂= Array{Float64}(undef,n)
 for i in 1:n
     temp2 = temp1[i]
     if temp2 >0.9
@@ -130,15 +136,19 @@ Factored_Moment = sum(Ø₂.*arm.*fps.*PTsteel_area)/1e6
 #Transfer state (TS)
 comp_limit  = -0.5*fc′
 ten_limit = 0.25*fc′^0.5
-TS_top = -Force_steel/Aconcrete + (P1*e1  + P2e2+P3e3 -Mdead)/st
-TS_bot = -Force_steel/Aconcrete + (-P1*e1 + P2e2+P3e3 +Mdead)/sb
-#Service state (SS)
-SS_top = -Force_steel/Aconcrete + (P1*e1  + P2e2+P3e3 -Mtotal)/st
 
-constraint = (TS_top, TS_bot, SS_top)
+ext_moment = sum(Force_steel_each.*ecc)
+TS_top = -Force_steel/Total_area + ( ext_moment - M_dead)/st
+TS_bot = -Force_steel/Total_area + (-ext_moment + M_dead)/sb
+#Service state (SS)
+SS_top = -Force_steel/Total_area + ( ext_moment - M_total)/st
+
+constraints = (TS_top, TS_bot, SS_top)
 c_check = Array{Float64}(undef,3,1)
-if i in constraints 
-    if comp_limit <= i <= ten_limit
+for i in 1:3
+    con = constraints[i]
+    println(i)
+    if comp_limit <= con <= ten_limit
         c_check[i] = true
     else
         c_check[i] = false
