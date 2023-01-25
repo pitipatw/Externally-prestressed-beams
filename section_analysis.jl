@@ -16,6 +16,9 @@ high_strength = false
 ϵ_cu = 0.003 # Maximum compressive strain for Concrete
 ϵ_ce = 0.005 # Maximum tensile strain for Concrete :Obsolete
 
+####half-scale model
+A_l = 6179 #mm, single piece
+
 # Steel Properties
 # use tuple for mutiple rods
 PTsteelᵣ= [9,0,0] #dia mm 
