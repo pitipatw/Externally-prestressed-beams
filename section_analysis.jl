@@ -78,7 +78,7 @@ end
 ## Calculation process
 # Start of Pure Axial Capacity Calculation
 
-Ø₁ = phi1(fc′) #this isn't being used
+Ø₁ = phi1(fc′) #this isn't being used #this is for stress/strain relationship to calculate fps (old method).
 Factored_AxialCap = axialCapacity(fc′, Total_area, PTsteel_area, fpe)
 println("Factored Axial Capacity: $Factored_AxialCap kN")
 
@@ -95,7 +95,7 @@ println("Factored Axial Capacity: $Factored_AxialCap kN")
 section_centroid = collect(range(1, 50, length = 2000))
 
 #Stress of each straind
-fps₁ = 1000
+fps₁ = 1000 #use getfps, new version is going to be iterative process in this part.
 fps₂ = 300
 fps₃ = 300 
 
