@@ -8,7 +8,7 @@ function axialCapacity(fc′::Real, Atotal::Real, steelAreas::Vector{<:Real}, fp
     fsteel = sum(fpe .* steelAreas) / reductionFactor
 
     #unfactored
-    Pr = fconcrete + fsteel
+    Pr = fconcrete - fsteel
 
     #Factored
     return ϕ_c * ϕ_s * Pr
