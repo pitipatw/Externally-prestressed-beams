@@ -35,7 +35,6 @@ function shearCapacity(fc′::Float64, fR1::Float64 , fR3:: Float64 , Ac::Float6
     Ashear : area that resist shear, could be a percentage of the total area (%Aconcrete).
 
     """
-    
     # predefine variables
     fctk = 2 #MPa, conservative value of concrete tensile strength
     wᵤ = 1.5 #mm
@@ -48,13 +47,11 @@ function shearCapacity(fc′::Float64, fR1::Float64 , fR3:: Float64 , Ac::Float6
     fFtuk = fFts - wᵤ/CMOD₃*(fFts - 0.5*fR3 + 0.2*fR1) 
     if fFtuk < 0  ;fFtuk = 0 ; end
     
-
     fcd = fc′/γc
     σcp = Ned/Ac
     if σcp > 0.2*fcd #limit σcp not more than 0.2fcd
         σcp = 0.2*fcd
     end
-    
     k = clamp( 1+ sqrt(200. / d),0.,2.)
 
     # Shear per unit area [N/mm²]
@@ -65,10 +62,7 @@ function shearCapacity(fc′::Float64, fR1::Float64 , fR3:: Float64 , Ac::Float6
     # Shear [N], refer in code as V_Rd,F
     Ashear = ratio*Ac
     V = Ashear*unitV
-    
 
     Vu = 0.75*V/1000 #[kN]
-
     return Vu
-
 end
