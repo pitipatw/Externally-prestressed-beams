@@ -3,6 +3,7 @@
     A State-of-the-Art Review
 The included models are 
     (1) ACI 318-19 (in the paper was originally ACI 318-83)
+        [ready]
     (2) Pannell (1969) # No non-prestressing steel
     (3) Tam and Pannell (1976) # Partially prestressed beams span/depth = 20 to 45
     (4) Du and Tao (1985) # 26 beams under third point loading with span/depth = 19.1
@@ -11,8 +12,8 @@ The included models are
     (7) Harajli and Hijazi (1991)
     (8) Naaman and Alkhairi (1991) *** this one is famouse, a lot of papers use this eq.
     (9) Chakrabarti (1995)
-    (10)Li-Hyung Lee et al (1999)
-    (11)Au and Du (2004)
+    [debugging](10)Li-Hyung Lee et al (1999)
+    [check Original paper](11)Au and Du (2004)
 """
 # input variables
 
@@ -133,6 +134,7 @@ function getfps7(fpe::Float64, fpu::Float64, fpy::Float64, S::Float64, dₚ::Flo
 end
 
 function getfps8(fpe::Float64, dₚₛ::Float64, L::Float64, Eps::Float64, fpy::Float64, ϵcu::Float64, c::Float64, L1::Float64, L2::Float64)
+    # psi
     # Naaman and Alkhairi (1991) 
     # L1 = length of loaded span or sum of lengths of loaded spans, influenced by the same tendon
     # L2 = leng of tendon between end enchorages.
@@ -146,7 +148,7 @@ function getfps8(fpe::Float64, dₚₛ::Float64, L::Float64, Eps::Float64, fpy::
     return fps
 end
 
-function getfps9(fpe::Float64, fc′::Float64, ρₚ::Float64, ρₛ::Float64, dₚ::Float64, dₛ::Float64, fy::Float64)
+function getfps9(fpe::Float64, fc′::Float64, ρₚ::Float64, ρₛ::Float64, dₚ::Float64, dₛ::Float64, fy::Float64, S::Float64, d::Float64)
     # psi
     # Chakrabarti (1995) 
     # non-prestressing steel-> ds is undefined. -> use dp/ds = 1 ? 
@@ -176,26 +178,24 @@ function getfps9(fpe::Float64, fc′::Float64, ρₚ::Float64, ρₛ::Float64, d
 return fps
 end
 
+function getfps10(fpe::Float64, fc′::Float64, As′::Float64, As::Float64, fy::Float64,Aps::Float64,dₛ::Float64, dₚ::Float64, ρₚ::Float64,f::Float64,L::Float64)
+    # psi
+    # Li-Hyung Lee et al. (1999)
+    # what is 'f' ? 
+    fps = 10000. + 0.8*fpe + (As′-As)*fy/(15. *Aps) + 80. *sqrt(dₛ/dₚ*fc′/ρₚ*(1/f+ dₚ/L)) #psi
+return fps
+end
 
-
-
-
-
-
-
-function getfps11fpe::Float64, fc′::Float64, ρ::Float64, fpu::Float64, fpy::Float64, r::Float64)
-    # Au, F.T.K and DU, J.S (2004)
+function getfps11(fpe::Float64, fc′::Float64, Aps::Float64, As::Float64,fy::Float64,β₁::Float64,b::Float64, dₚₛ::Float64)
+    # MPa
+    # Au, F.T.K and Du, J.S (2004)
+    #  Le: span length between the anchorage divided by number of plastic hinges
     cₚₑ = clamp( (Aps*fpe + As*fy)/(0.85*β₁*fc′*b) , 0. , fpy) #very weird cap value, might have to recheck.
-    fps = clamp( fpe + 0.0279*Eps*(dₚ-cₚₑ)/lₑ , 0., fpy) #MPa
+    fps = clamp( fpe + 0.0279*Eps*(dₚₛ-cₚₑ)/Lₑ , 0., fpy) #MPa
     return fps 
 end
 
-function getfps10fpe::Float64, fc′::Float64, ρ::Float64, fpu::Float64, fpy::Float64, r::Float64)
-    # Li-Hyung Lee et al. (1999)
-    # what is 'f' ? 
-    fps = 10000. + 0.8*fse + (As′-As)*fy/(15*Aps) + 80*sqrt(ds/dp*fc′/ρₚ*(1/f+ dp/L)) #psi
-return fps
-end
+
 
 
 
