@@ -53,3 +53,4 @@ axialFactor = 0.5
 RsteelAxial = axialFactor * FuAxial * 3 #total post tension force on concrete [N]
 Rtotal = 0.65 * 0.8 * (Rconcrete - RsteelAxial) #total factored resistance [N]
 
+##Deviator design
