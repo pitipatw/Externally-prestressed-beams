@@ -56,6 +56,15 @@ modified their previous equation
 getfps12(fpe, dₚₛ, h, Aps, c, Eps, fpy, fpu, L, L1, L2, p (int))
 ===
 Notation:
+Aps : Area of prestressed unbonded reinforcement
+As  : Area of non-prestressed tensile reinforcementA
+A's : Area of non-prestressed compressive reinforcement
+b : beam width (going to use the 2*thickness of the PixelFrame)
+c/cᵤ/cy : Depth of neutral axis at ultimate nominal strength (c: at any state, cu at fps, cy at fy)
+dₚₛ : Depth from the extreme compressed fiber to the centroid of the prestressing steel
+L : span length of the simply supported beam.
+L1 : Length of the loaded span (generally fully loaded , L1= L)
+L2 : length of the tendon between anchorages (if straigth tendon : L2 = L)
 """
 function getfps12(fpe::Float64, dₚₛ::Float64, h::Float64, Aps::Float64, c::Float64, Eps::Float64, fpy::Float64, fpu::Float64, L::Float64, L1::Float64, L2::Float64,p::Int8)
     # predefined values
