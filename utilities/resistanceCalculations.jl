@@ -37,32 +37,32 @@ function shearCapacity(fc′::Float64, fR1::Float64 , fR3:: Float64 , Ac::Float6
     """
     # predefine variables
     fctk = 2 #MPa, conservative value of concrete tensile strength
-    wᵤ = 1.5 #mm
-    CMOD₃ = 1.5
-    γc = 1.
+    wᵤ = 1.5 #mm, a parameter for fiber test
+    CMOD₃ = 1.5 # a parameter for fiber test
+    γc = 1.2 #safety factor for concrete strength.
+    # γc = 1 was used in GH script, but now it's 1.2 according to fib.
 
     # calculation starts
-    fck = fc′
-    fFts = 0.45*fR1 
-    fFtuk = fFts - wᵤ/CMOD₃*(fFts - 0.5*fR3 + 0.2*fR1) 
-    if fFtuk < 0  ;fFtuk = 0 ; end
+    fck = fc′ # fc′ parameter
+    fFts = 0.45*fR1  # a fiber parameter
+    fFtuk = fFts - wᵤ/CMOD₃*(fFts - 0.5*fR3 + 0.2*fR1) #a fiber parameter
+    if fFtuk < 0  ;fFtuk = 0 ; end # check fFtuk not less than 0
     
-    fcd = fc′/γc
-    σcp = Ned/Ac
+    fcd = fc′/γc #fc' with safety factor
+    σcp = Ned/Ac # stress from external axial force (post tension + load)
     if σcp > 0.2*fcd #limit σcp not more than 0.2fcd
         σcp = 0.2*fcd
     end
-    k = clamp( 1+ sqrt(200. / d),0.,2.)
+    k = clamp( 1+ sqrt(200. / d),0.,2.) # k <=2
 
     # Shear per unit area [N/mm²]
-    unitV = (0.18/γc*k*(100*ρl*(1+7.5*fFtuk/fctk)*fck)^(1/3)+0.15*σcp)
-    # unitV will not be smaller than unitVmin
-
+    unitV = (0.18/γc*k*(100*ρl*(1+7.5*fFtuk/fctk)*fck)^(1/3)+0.15*σcp) #shear stress (before multiply by the shear area
+    # unitV will not be smaller than unitV_min = 0.035*k^1.5*fck^0.5 + 0.15*σcp (below)
     unitV = clamp( unitV , 0.035*k^1.5*fck^0.5 + 0.15*σcp , unitV)
     # Shear [N], refer in code as V_Rd,F
     Ashear = ratio*Ac
     V = Ashear*unitV
 
-    Vu = 0.75*V/1000 #[kN]
+    Vu = 0.75*V/1000 #[kN] %factored shear
     return Vu
 end
