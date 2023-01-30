@@ -56,13 +56,13 @@ modified their previous equation
 getfps12(fpe, dₚₛ, h, Aps, c, Eps, fpy, fpu, L, L1, L2, p (int))
 ===
 Notation:
-
 """
 function getfps12(fpe::Float64, dₚₛ::Float64, h::Float64, Aps::Float64, c::Float64, Eps::Float64, fpy::Float64, fpu::Float64, L::Float64, L1::Float64, L2::Float64,p::Int8)
     # predefined values
     ϵcu = 0.003
-    As = 0. , fy = 0. # A minimum value of As could be used, but not actually put in the section, substituted by the fiber.
+    As = 0. , fy = 0. # A minimum value of non-prestresses steel area (As) could be used here, but leaving it 0 is conservative.
     # p is number of points loading; 1 point (p=1), 2 points (p=2)
+    # alpha and mu are parameters depend on number of point loads.
     if p == 1
         α = 0.05 ; μ = 0.20 
     elseif p == 2
