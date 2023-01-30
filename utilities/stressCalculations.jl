@@ -2,26 +2,26 @@
     Stress at Ultimate in unbonded post tensioning tendons for simply supported beams
     A State-of-the-Art Review
 The included models are 
-    (1) ACI 318-19 (in the paper was originally ACI 318-83)
-        [ready]
-    (2) Pannell (1969) # No non-prestressing steel
-    (3) Tam and Pannell (1976) # Partially prestressed beams span/depth = 20 to 45
-    (4) Du and Tao (1985) # 26 beams under third point loading with span/depth = 19.1
-    (5) Harajli (1990)
-    [n,n₀ def](6) Harajli and Kanj (1991) # was proposed to replace ACI318-83
-    [n,n₀ def](7) Harajli and Hijazi (1991)
-    (8) Naaman and Alkhairi (1991) *** this one is famouse, a lot of papers use this eq.
-    (9) Chakrabarti (1995)
-    [debugging, f](10)Li-Hyung Lee et al (1999)
-    [check Original paper](11)Au and Du (2004)
+    (1) and (12) : Most Confident :)
+        (1) [ready] ACI 318-19 (in the paper was originally ACI 318-83)
+        (12)[ready] Alqam, Naaman ,and Alkhairi (2020) updated results 
+    ==============================================================
+    (2) to (11) are for checking and just in case they become useful in the future. 
+        (2) Pannell (1969) # No non-prestressing steel
+        (3) Tam and Pannell (1976) # Partially prestressed beams span/depth = 20 to 45
+        (4) Du and Tao (1985) # 26 beams under third point loading with span/depth = 19.1
+        (5) Harajli (1990)
+        (6) [debugging] Harajli and Kanj (1991) # was proposed to replace ACI318-83 [n,n₀ def]
+        (7) [debugging] Harajli and Hijazi (1991) [n,n₀ def]
+        (8) Naaman and Alkhairi (1991) *** this one is famouse, a lot of papers use this eq.
+        (9) Chakrabarti (1995)
+        (10)[debugging, f]Li-Hyung Lee et al (1999)
+        (11)[check Original paper] Au and Du (2004)
+    
 """
 # input variables
-# r : S/dₚₛ or dₚₛ
-# todo 
-# sort these function, 
-# rename as the numbers above 
-# specify inputs
-# unit conversion from ... to psi world. and psi world back!
+# r : S/dₚₛ
+
 begin
 
 """
@@ -29,25 +29,58 @@ ACI 318M-18 ref 20.3.2.4
 
 r : span/depth ratio
 """
-function getfps1(fpe::Float64, fc′::Float64, ρ::Float64, fpu::Float64, fpy::Float64, r::Float64)
+function getfps1(fpe::Float64, fc′::Float64, ρₚₛ::Float64, fpu::Float64, fpy::Float64, r::Float64)
     if r <= 35
-        temp1 = fpe + 70 + fc′ / (100 * ρ)
-        temp2 = fpe + 420
+        temp1 = fpe + 70 + fc′ / (100 * ρₚₛ)
+        temp2 = fpe + 420.
     else
-        temp1 = fpe + 70 + fc′ / (300 * ρ)
-        temp2 = fpe + 210
+        temp1 = fpe + 70 + fc′ / (300 * ρₚₛ)
+        temp2 = fpe + 210.
     end
     #take minimum
     fps = min(temp1, temp2, fpy)
 
     #check assumption
-    if fpe >= 0.5*fpu && fps == temp1
-        println("Invalid Assumption for Eq.1")
+    if fpe < 0.5*fpu 
+        println("Invalid Assumption for ACI")
     end
 
     return fps
 end
 
+"""
+Alqam, Alkhairi, and Naaman 
+2021 update
+Using collected data from  19xx to 201x
+modified their previous equation
+getfps12(fpe, dₚₛ, h, Aps, c, Eps, fpy, fpu, L, L1, L2, p (int))
+===
+Notation:
+
+"""
+function getfps12(fpe::Float64, dₚₛ::Float64, h::Float64, Aps::Float64, c::Float64, Eps::Float64, fpy::Float64, fpu::Float64, L::Float64, L1::Float64, L2::Float64,p::Int8)
+    # predefined values
+    ϵcu = 0.003
+    As = 0. , fy = 0. # A minimum value of As could be used, but not actually put in the section, substituted by the fiber.
+    # p is number of points loading; 1 point (p=1), 2 points (p=2)
+    if p == 1
+        α = 0.05 ; μ = 0.20 
+    elseif p == 2
+        α = 0.09 ; μ = 1.41
+    else
+        println("Invalid input of p")
+    end
+    # strain reduction coefficient at Ultimate.
+    Ωᵤ = α * (dₚₛ - h / 2)/(0.25 * dₚₛ) * (μ + 18 / (L / dₚₛ))
+    # lower bound value for fps
+    # As = 0 , fy = 0 
+    ωₚₑ = (Aps * fpe + As * fy)/(fc′ * b * dₚₛ)
+    lb = fpe + 0.50 * fpy * ωₚₑ
+    fps =clamp(fpe + Ωᵤ * Eps * ϵcu * (dₚₛ / c - 1) * L1 / L2, lb, 0.86fpu) # lb <= fps <= 0.86*fpu
+    return fps
+end
+
+# =================================================================================
 """
 Pannell 1969
 
@@ -215,6 +248,9 @@ function getfps11(fpe::Float64, fc′::Float64, Aps::Float64, As::Float64,fpy::F
     return fps 
 end
 
+"""
+ The lastest one: 
+"""
 
 
 """
