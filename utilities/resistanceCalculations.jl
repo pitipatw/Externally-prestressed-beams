@@ -1,7 +1,10 @@
 """
 Factored axial capacity of section
 """
-function axialCapacity(fc′::Real, Atotal::Real, steelAreas::Vector{<:Real}, fpe::Vector{<:Real}; reductionFactor = 1e3, ϕ_c = 0.65, ϕ_s = 0.8)
+function axialCapacity(fc′::Real, Atotal::Real, steelAreas::Vector{<:Real}, fpe::Vector{<:Real}; 
+        reductionFactor = 1e3, 
+        ϕ_c = 0.65, 
+        ϕ_s = 0.8)
     
     #individual forces
     fconcrete = 0.85 * fc′ * Atotal / reductionFactor
@@ -36,7 +39,10 @@ end
     Ashear : area that resist shear, could be a percentage of the total area (%Aconcrete).
 """
 function shearCapacity(fc′::Float64, fR1::Float64 , fR3:: Float64 , Ac::Float64,d::Float64, ρl::Float64, ratio::Float64, Ned::Float64;
-        fctk = 2., wᵤ = 1.5, CMOD₃ = 1.5, γc = 1.2)
+        fctk = 2., 
+        wᵤ = 1.5, 
+        CMOD₃ = 1.5, 
+        γc = 1.2)
 
     # calculation starts
     fck = fc′ # fc′ parameter
