@@ -66,10 +66,10 @@ L : span length of the simply supported beam.
 L1 : Length of the loaded span (generally fully loaded , L1= L)
 L2 : length of the tendon between anchorages (if straigth tendon : L2 = L)
 """
-function getfps12(fpe::Float64, dₚₛ::Float64, h::Float64, Aps::Float64, c::Float64, Eps::Float64, fpy::Float64, fpu::Float64, L::Float64, L1::Float64, L2::Float64,p::Int8)
+function getfps12(fpe::Float64, fc′::Float64, dₚₛ::Float64, h::Float64, b::Float64, Aps::Float64, c::Float64, Eps::Float64, fpy::Float64, fpu::Float64, L::Float64, L1::Float64, L2::Float64,p::Int64)
     # predefined values
     ϵcu = 0.003
-    As = 0. , fy = 0. # A minimum value of non-prestresses steel area (As) could be used here, but leaving it 0 is conservative.
+    As = 0. ; fy = 0. # A minimum value of non-prestresses steel area (As) could be used here, but leaving it 0 is conservative.
     # p is number of points loading; 1 point (p=1), 2 points (p=2)
     # alpha and mu are parameters depend on number of point loads.
     if p == 1
