@@ -53,38 +53,38 @@ function getMcr(em::Float64, Mg::Float64, omega::Float64, Itr::Float64, Ec::Floa
     return mcr
 end
 
+#pass these 2 lines first
+omega = getOmega(Ls, L, es, em)
+mcr = getMcr(em, Mg, omega, Itr, Ec, Eps, Aps, r, Zb, Atr)
 
+##
 # Under Mcr fps will follow this equation 
 # M here is the Moment at the critical section (variable)
 # so this is a function between fps and M,e (e is the middle of the beam)
-fps = fpe +(omega*M*e)/(Itr*Ec/Eps+ Aps*(r^2+e^2)*omega)
 
-if fps > fpy
-    fps = fpy
+function getDelta()
+    #displacement 
+    # due to the PS force
+    #at mid span
+    delta_mid_neg = fps*Aps/(Ec*Itr)*(eL^2/8 - (e-es)*Ls^2/6)
+
+    # at deviator 
+    delta_dev_neg = fps*Aps/(Ec*Itr)*(es*Ls^2/6 + e*(L*Ls/2-2/3*Ls^2))
+
+    # due to the applied force
+    delta_mid_pos = M*L^2/(6*Ec*Itr)*(3/4-(Ls/L)^2)
+    delta_dev_pos = M*L^2/(6*Ec*Itr)*( 3*(Ls/L)*(1-Ls/L)-(Ls/L)^2)
+
+    delta_mid = delta_mid_pos - delta_mid_neg
+    Δ = delta_mid - delta_dev_pos + delta_dev_neg
+    Δcalc = M*L^2/(6*Ec*Itr)*(3/4) - fps*Aps*e/(Ec*Itr)*(L^2/8 - L*Ls/2 + Ls^2/2)
+    e = em - ( delta_mid - delta_dev_pos + delta_dev_neg )
+    @assert Δ == Δcalc
+    return Δ
 end
-function getDelta(
-#displacement 
-# due to the PS force
-#at mid span
-delta_mid_neg = fps*Aps/(Ec*Itr)*(eL^2/8 - (e-es)*Ls^2/6)
 
-# at deviator 
-delta_dev_neg = fps*Aps/(Ec*Itr)*(es*Ls^2/6 + e*(L*Ls/2-2/3*Ls^2))
 
-# due to the applied force
-delta_mid_pos = M*L^2/(6*Ec*Itr)*(3/4-(Ls/L)^2)
-delta_dev_pos = M*L^2/(6*Ec*Itr)*( 3*(Ls/L)*(1-Ls/L)-(Ls/L)^2)
 
-delta_mid = delta_mid_pos - delta_mid_neg
-Δ = delta_mid - delta_dev_pos + delta_dev_neg
-Δcalc = M*L^2/(6*Ec*Itr)*(3/4) - fps*Aps*e/(Ec*Itr)*(L^2/8 - L*Ls/2 + Ls^2/2)
-@assert Δ == Δcalc
-return Δ
-end
-e = em - ( delta_mid - delta_dev_pos + delta_dev_neg )
-
-K1 = 0 
-K2 = 0
 ### START HERE ###
 
 #Evaluate the deflection at the midspan
@@ -96,33 +96,46 @@ M = P*Ls/2.
 displacements = zeros(length(M))
 fps = fpe # initial guess of the stress in the tendons.
 omega = getOmega(Ls, L, es, em)
-#looop M
+fps_old = fpe #will have to update at the end as the current fps and use that in the next loop.
+#loop M
 for i in eachindex(M)
     Mi = M[i] #value of the current applied moment
+    if Mi <= Mcr
+
     #M0 = 0.1 
     #Assume fps = fpe as an initial guess
-    fps_old = fpe #will have to update at the end as the current fps.
-    check_term = 1.
-    tol = 1e-6
-    while check_term > tol
-        #calculate the total deflection
-        Δ = getDelta(Mi, fps0_old, Itr, Ec, Eps, Aps, r)
+    
+        check_term = 1.
+        tol = 1e-6
+        while check_term > tol
+            #calculate the total deflection
+            Δ = getDelta(Mi, fps0_old, Itr, Ec, Eps, Aps, r)
 
-        #find the actual eccentricity of the tendon
-        e = em - Δ 
+            #find the actual eccentricity of the tendon
+            e = em - Δ 
 
-        #calculate the stress in the tendons, limited by fpy
-        fps_new = clamp (fpe +(omega*Mi*e)/(Itr*Ec/Eps+ Aps*(r^2+e^2)*omega) , fpe , fpy)
+            #calculate the stress in the tendons, limited by fpy
+            fps_new = clamp (fpe +(omega*Mi*e)/(Itr*Ec/Eps+ Aps*(r^2+e^2)*omega) , fpe , fpy)
 
-        check_term = abs(fps_new - fps)/fps
+            check_term = abs(fps_new - fps)/fps
 
-        fps_old = fps_new # this one used for the next loop.
+            fps_old = fps_new # this one used for the next loop.
+        end
+
+        delta_mid_neg = fps*Aps/(Ec*Itr)*(eL^2/8 - (e-es)*Ls^2/6)
+        delta_mid_pos = M*L^2/(6*Ec*Itr)*(3/4-(Ls/L)^2)
+        delta_mid = delta_mid_pos - delta_mid_neg
+        displacements[i] = delta_mid
+    elseif Mi > Mcr && Mi <= My
+        println("Exceeds the cracking moment")
+        println("Using Linear Crack scheme")
+    elseif Mi > My
+        println("Exceeds the yielding moment")
+        println("Beam reaching Ultimate Moment capacity (Mu) and will fail")
+    else
+        println("Something is wrong")
     end
-
-    delta_mid_neg = fps*Aps/(Ec*Itr)*(eL^2/8 - (e-es)*Ls^2/6)
-    delta_mid_pos = M*L^2/(6*Ec*Itr)*(3/4-(Ls/L)^2)
-    delta_mid = delta_mid_pos - delta_mid_neg
-    displacements[i] = delta_mid
+    
 end
 
 #repeat the process
