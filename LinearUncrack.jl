@@ -3,6 +3,8 @@ Adopted from
     "Flexural behavior of externally prestressed beams Part 1: Analytical models"
     Chee Khoon Ng, Kiang Hwee Tan.
 """
+
+using ProgressBars
 #This function plot the flexural behavior of externally prestressed beams
 # Pseudo-section analysis
 
@@ -125,7 +127,7 @@ max_it = 1000
 fps_sub_hist = zeros(max_it)
 fps_history = zeros(length(M))
 #loop M
-for i in eachindex(M)
+for i in ProgressBar(eachindex(M))
     Mi = M[i] #value of the current applied moment
     if Mi <= mcr
         #Better format here
@@ -168,8 +170,12 @@ for i in eachindex(M)
         displacements_mid_pos[i] = Mi*L^2/(6*Ec*Itr)*(3/4-(Ls/L)^2)
         fps_history[i] = fps_old
     elseif Mi > mcr 
-        println("Exceeds the cracking moment")
+        println(Mi) 
+        Pi = P[i]
+        Pi_kips = Pi/4.44822/1000.
+        println("Exceeds the cracking moment at load = $Pi N ($Pi_kips kips)")
         println("Using Linear Crack scheme")
+        break
     elseif Mi > My
         println("Exceeds the yielding moment")
         println("Beam reaching Ultimate Moment capacity (Mu) and will fail")
