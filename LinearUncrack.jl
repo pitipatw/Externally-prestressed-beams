@@ -3,8 +3,13 @@ Adopted from
     "Flexural behavior of externally prestressed beams Part 1: Analytical models"
     Chee Khoon Ng, Kiang Hwee Tan.
 """
+# To update
+# fc' from actual test
+# fpe from the test
+
 
 using ProgressBars
+using Plots
 #This function plot the flexural behavior of externally prestressed beams
 # Pseudo-section analysis
 
@@ -39,49 +44,35 @@ begin
     # If there are multiple materials, transformed section geometry is needed for Zb (and everything related to section area)
 
     Atr = 18537.69 # Transformed area of the cross section [mm2]
-    Itr = 6.4198e+07 #mm4 moment of inertia 
+    Itr = 6.4198e+07 #moment of inertia [mm4]
 
     #forces
-    w = Atr/10^9*2400.0*9.81 # N/mm
-    Mg = w*2000.0^2/8.0 # Nmm
-    fr = 0.7*sqrt(fc′) #MPa
-    r  = sqrt(Itr/Atr) #mm
+    w = Atr/10^9*2400.0*9.81 # Selfweight [N/mm]
+    mg = w*L^2/8.0 # Moment due to selfweight [Nmm]
+    fr = 0.7*sqrt(fc′) # Concrete cracking strenght [MPa]
+    r  = sqrt(Itr/Atr) # Radius of gyration [mm]
     fpe = 0.1*fpy # Effective post tensioning stress [MPa] ***will input the one on the test day***
- 
 end
 
-
-
-#create function omega that calculate omega bases on the line 38 
-#
-#
-#
-# which type is faster, Real or Float64?
-#
-
-
-function getOmega(Ls::Float64, L::Float64, es::Float64, em::Float64)
-    omega = 1.0 - (es / em)*(Ls/L) + (es - em)/ em * (Ls/L*4/3)
+"""
+Bond reduction coefficient for the linear elastic uncracked regime, Naaman's
+"""
+function getOmega(Ls::Float64,Ld::Float64, L::Float64, es::Float64, em::Float64)
+    omega = 1.0 - (es / em)*(Ls/L) + (es - em)/ em * (Ls^2/(3*L*Ld) +Ld/L)
     return omega
 end
 
-#calculate the moment at the critical section
-function getMcr(em::Float64, Mg::Float64, omega::Float64, Itr::Float64, Ec::Float64, Eps::Float64, Aps::Float64, r::Float64, Zb::Float64, Atr::Float64)
-    @show mcre = Aps*fpe*(em + Zb/Atr) + (fr * Zb)
-    @assert mcre > 0
-    @show dmcr = (Aps*em*(em + Zb / Atr)*(mcre - Mg)) / ((1/omega*Itr*Ec/Eps) + Aps*(r^-em*Zb/Atr))
+"""
+#calculate the cracking moment of the beam
+"""
+function getMcr(Aps::Float64,fpe:: Float64, em::Float64,Zb::Float64, Atr::Float64, mg::Float64, omega::Float64, Itr::Float64, Ec::Float64, Eps::Float64,  r::Float64)
+    @show mcre = Aps*fpe*(em + Zb/Atr) + (fr * Zb) # Cracking moment due to initial effective prestress (mcre)
+    @assert mcre > 0 # mcre should be positive
+    @show dmcr = (Aps*em*(em + Zb/Atr)*(mcre - mg)) / ((1/omega*Itr*Ec/Eps) + Aps*(r^2-em*Zb/Atr)) # Moment due to stress increase in external tendons.
     @assert dmcr > 0
     mcr = mcre + dmcr
     return mcr
 end
-
-#pass these 2 lines first
-omega = getOmega(Ls, L, es, em)
-mcr = getMcr(em, Mg, omega, Itr, Ec, Eps, Aps, r, Zb, Atr) # Nmm
-##
-# Under Mcr fps will follow this equation 
-# M here is the Moment at the critical section (variable)
-# so this is a function between fps and M,e (e is the middle of the beam)
 
 function getDelta(fps::Float64, M::Float64, L::Float64, Ls::Float64, es::Float64, em::Float64, Itr::Float64, Ec::Float64, Aps::Float64)
     #displacement 
@@ -99,14 +90,14 @@ function getDelta(fps::Float64, M::Float64, L::Float64, Ls::Float64, es::Float64
 
     delta_mid = delta_mid_pos - delta_mid_neg
     delta_mid_calc = M*L^2/(6*Ec*Itr)*(3/4-(Ls/L)^2) - fps*Aps/(Ec*Itr) * (em * L^2 / 8 - (em-es)*Ls^2/6)
-    @assert abs(delta_mid - delta_mid_calc) < 1e-3
+    @assert abs(delta_mid - delta_mid_calc) < 1e-9
     Δ = delta_mid - (delta_dev_pos - delta_dev_neg)
     K1 = Ls/L-1 
     K2 = 0.0
     Δcalc = M*L^2/(6*Ec*Itr)*(3 * (Ls/L) * K1 + 3/4 + K2) - fps*Aps*em/(Ec*Itr)*(L^2/8 - L*Ls/2 + Ls^2/2)
 
     # @show Δ - Δcalc
-    @assert abs(Δ - Δcalc) < 1e-6
+    @assert abs(Δ - Δcalc) < 1e-9
     return Δ
 end
 
@@ -120,11 +111,16 @@ end
 # Dummy load as from 0 to 6600 N (1.5kips) with 0.1 increment
 P = 0.:10:10600.  # N
 M = P*Ls/2.
+
+
+#Run these 2 lines first, thye dont change during the calculation.
+omega = getOmega(Ls,Ld, L, es, em) # [unitless]
+mcr = getMcr(Aps, fpe, em, Zb, Atr, mg, omega, Itr, Ec, Eps, r) # [Nmm]
+
 displacements = zeros(length(M))
 displacements_mid_pos = zeros(length(M))
 iteration_exceeded = zeros(length(M)) 
 fps = fpe # initial guess of the stress in the tendons.
-omega = getOmega(Ls, L, es, em)
 fps_old = fpe #will have to update at the end as the current fps and use that in the next loop.
 max_it = 1000
 fps_sub_hist = zeros(max_it)
@@ -188,7 +184,7 @@ for i in ProgressBar(eachindex(M))
 end
 fps_sub_hist
 #plot the deflection
-using Plots
+
 
 plot(P, displacements_mid_pos, label = "Deflection")
 
