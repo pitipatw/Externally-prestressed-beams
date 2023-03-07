@@ -8,28 +8,37 @@ using ProgressBars
 #This function plot the flexural behavior of externally prestressed beams
 # Pseudo-section analysis
 
+begin
 #Inputs
+#..........Notes..........
+# Use Ld = Ls (this test only) 
+# Eccentricities measured from the neutral axis
+# M is the moment in the constant region
+# Mg = moment due to the selfweight
+# M(x) is the moment equation due to the load
 #Units N, mm, MPa
+
 #   Material Properties
-    fc′= 30. # Concrete strength [MPa] 
+    fc′= 30. # Concrete strength [MPa] ****Should update on the test day using cylinder test***
     Ec = 4700.0*sqrt(fc′) # MPa  ACI fc-> Concrete modulus relationship [MPa]
     Eps = 70000.0 #Post tensioning steel modulus [MPa]
     fpy = 0.002*Eps #MPa  
     #Safe load on the website https://www.engineeringtoolbox.com/wire-rope-strength-d_1518.html 
-    # is ~ 150 MPa.
-# PixelFrame section/element properties
+    # is ~ 150 MPa. Currently 140 MPa :)
 
-    em = 228.9 #mm
-    es = 0.
-    em0 = em # Initial eccentricity at the midspan
-    Ls = 502.7 #mm
-    Ld = Ls
-    L = 2000.0 #mm
+# PixelFrame section/element properties
+    em = 228.9 # Eccentricity at the middle of the member [mm]
+    es = 0. # Eccentricity at the support of the member   [mm]
+    em0 = em # Initial eccentricity at the midspan        [mm]
+    Ls = 502.7 # Distance from support to the first load point [mm]
+    Ld = Ls    # Distance from support to the first deviator [mm]
+    L = 2000.0 # Total length of the member [mm]
     # two 1/4" bars with 1200 lb capacity
-    Aps = 2.0*(0.25*25.4)^2*pi/4.0 #mm2
-    fpe = 0.1*fpy # MPa will input the one on the test day.
-    Zb = 452894.24 #mm3 elastic modulus
-    Atr = 18537.69 # mm2 Transformed area of crosssection.
+    Aps = 2.0*(0.25*25.4)^2*pi/4.0 # Total area of the post tensioned steel [mm2]
+    Zb = 452894.24 # Elastic modulus of the concrete section from the centroid to extreme tension fiber [mm3]
+    # If there are multiple materials, transformed section geometry is needed for Zb (and everything related to section area)
+
+    Atr = 18537.69 # Transformed area of the cross section [mm2]
     Itr = 6.4198e+07 #mm4 moment of inertia 
 
     #forces
@@ -37,17 +46,11 @@ using ProgressBars
     Mg = w*2000.0^2/8.0 # Nmm
     fr = 0.7*sqrt(fc′) #MPa
     r  = sqrt(Itr/Atr) #mm
+    fpe = 0.1*fpy # Effective post tensioning stress [MPa] ***will input the one on the test day***
+ 
+end
 
-#for Ld == Ls (our test) 
-#eccentricity measured from the neutral axis
-# es is eccentricity at the support
-# em is eccentricity at the midspan at start 
-# L is effective span of the beam
-# M is the moment in the constant region
-# Mg = moment due to the selfweight
-# M(x) is the moment equation due to the load
-# Itr = moment of inertia of the transformed section
-# r = radius of gyration of the transformed section
+
 
 #create function omega that calculate omega bases on the line 38 
 #
