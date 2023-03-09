@@ -54,7 +54,7 @@ begin
     fr = 0.7*sqrt(fc′) # Concrete cracking strenght [MPa]
     r  = sqrt(Itr/Atr) # Radius of gyration [mm]
     ps_force = 890 # Post tensioning force [N]
-    fpe = ps_force/Aps # Effective post tensioning stress [MPa] ***will input the one on the test day***
+    fpe = 0.0#ps_force/Aps # Effective post tensioning stress [MPa] ***will input the one on the test day***
 end
 
 """
@@ -198,7 +198,7 @@ fps_sub_hist
 plot(displacements,P, label = "Deflection", ylabel = "Deflection (mm)", xlabel = "Load (N)")
 
 
-dis_in = displacements/25.4
+dis_in = displacements
 plot(dis_in,P_lb, ylabel = "Load [lb]", xlabel = "Displacement [in]")
 df = CSV.File(joinpath(@__DIR__,"pixelframe_beam1.csv"))
 df = DataFrame(df)
