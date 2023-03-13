@@ -15,7 +15,7 @@ include("utilities\\stressCalculations.jl")
 #This function plot the flexural behavior of externally prestressed beams
 # Pseudo-section analysis
 
-begin
+
 #Inputs
 #..........Notes..........
 # Use Ld = Ls (this test only) 

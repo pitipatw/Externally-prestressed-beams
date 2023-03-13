@@ -47,6 +47,8 @@ begin
 
     Atr = 18537.69 # Transformed area of the cross section [mm2]
     Itr = 6.4198e+07 #moment of inertia [mm4]
+    Itr = 1.082e+8
+    
 
     #forces
     w = Atr/10^9*2400.0*9.81 # Selfweight [N/mm]
@@ -54,7 +56,7 @@ begin
     fr = 0.7*sqrt(fc′) # Concrete cracking strenght [MPa]
     r  = sqrt(Itr/Atr) # Radius of gyration [mm]
     ps_force = 890 # Post tensioning force [N]
-    fpe = 20.0 #ps_force/Aps # Effective post tensioning stress [MPa] ***will input the one on the test day***
+    fpe = 10.0 #ps_force/Aps # Effective post tensioning stress [MPa] ***will input the one on the test day***
 end
 
 """
@@ -114,11 +116,10 @@ end
 # Dummy load as from 0 to 6600 N (1.5kips) with 0.1 increment
 # P = 0.:10:10600.  # N
 # M = P*Ls/2.
-
+begin
 #Actual data
 P_lb = 0:10:4000  #[lb]
 P_N  = 4.448*P_lb # [N]
-
 P = P_N
 
 M = P*Ls/2.
@@ -192,14 +193,21 @@ for i in ProgressBar(eachindex(M))
         println("Something is wrong")
     end
 end
-fps_sub_hist
+
+end
+
+
 #plot the deflection
 
 
-plot(displacements,P, label = "Deflection", ylabel = "Deflection (mm)", xlabel = "Load (N)")
+plot(displacements,P, label = "Deflection, fpe: $fpe MPa", xlabel = "Deflection (mm)", ylabel = "Load (N)")
+
+plot!(displacement_old, P, label = "Previous")
 
 
-dis_in = displacements
+
+
+dis_in = displacements/25.4
 plot(dis_in,P_lb, ylabel = "Load [lb]", xlabel = "Displacement [in]")
 df = CSV.File(joinpath(@__DIR__,"pixelframe_beam1.csv"))
 df = DataFrame(df)
@@ -208,3 +216,13 @@ test_d = df[!,3]
 plot(test_d,test_P, label = "Test Data")
 plot!(dis_in, P_lb, label = "Model")
 plot(P, fps_history, label = "Stress")
+
+displacement_old = displacements
+#this is for fpe = 0 
+#P is the same 
+#displacements_0 = displacements
+displacements_20 = displacements
+dis
+plot(displacements,P, label = "Deflection", xlabel = "Deflection (mm)", ylabel = "Load (N)")
+plot!(displacements_0,P, label = "Deflection0", xlabel = "Deflection (mm)", ylabel = "Load (N)")
+plot(displacements_20 , fps_history, label = "Stress")
