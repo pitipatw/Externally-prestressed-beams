@@ -9,9 +9,9 @@ Adopted from
 
 
 using ProgressBars
-using Plots
 using CSV
 using DataFrames
+include("utilities\\stressCalculations.jl")
 #This function plot the flexural behavior of externally prestressed beams
 # Pseudo-section analysis
 
@@ -26,7 +26,7 @@ begin
 #Units N, mm, MPa
 
 #   Material Properties
-    fc′= 60. # Concrete strength [MPa] ****Should update on the test day using cylinder test***
+    fc′= 30. # Concrete strength [MPa] ****Should update on the test day using cylinder test***
     Ec = 4700.0*sqrt(fc′) # MPa  ACI fc-> Concrete modulus relationship [MPa]
     Eps = 70000.0 #Post tensioning steel modulus [MPa]
     fpy = 0.002*Eps #MPa  
@@ -55,7 +55,7 @@ begin
     r  = sqrt(Itr/Atr) # Radius of gyration [mm]
     ps_force = 890 # Post tensioning force [N]
     fpe = 0.0#ps_force/Aps # Effective post tensioning stress [MPa] ***will input the one on the test day***
-end
+
 
 """
 Bond reduction coefficient for the linear elastic uncracked regime, Naaman's
