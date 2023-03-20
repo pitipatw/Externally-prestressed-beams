@@ -107,6 +107,19 @@ function getFps()
 end
 
 """
+(23)
+"""
+function getFps2()
+    first_term = Eps*(ϵpe + Ωc*ϵc)
+    second_term = Ωc*ϵc*Eps*(dps/c-1)
+    if first_term + second_term > fpy
+        return fpy
+    else
+        return first_term + second_term
+    end
+end
+
+"""
 (20)
 """
 function getLc()
@@ -121,19 +134,52 @@ end
 """
 (21)
 """
-function getΩ2(Ω::Float64, L::Float64,Lc::Float64, Ls::Float64, Ld::Float64,Icr::Float64,Itr::Float64
+function getΩ2( Mat::Material, Sec::Section, Lc::Float64)
+    @unpack fc′, Ec, Eps, fpy = Mat
+    @unpack em, es, em0, Aps, Atr, Itr, Zb = Sec
+    @unpack w, mg, fr, r, fpe = Loads
+    # will have to add more variable to each structure.
+
+
      if Ld < Ls 
         if (L - 2*Ls) < Lc < (L - 2*Ld)
             Ωc = Ω*Icr/Itr + (1-Icr/Itr)*
                 (1 - L/(4*Ls)  + Lc/(2*Ls) - Lc^2/(4*L*Ls) - Ls/L)
         elseif Lc >= L-2*Ld
             Ωc = Ω*Icr/Itr + (1-Icr/Itr)*
-                (1 - L/(4*Ls)  + Ld/(2*Ls) - Ld^2/(4*L*Ls) - Ls/L)
+                (1 - Ls/L - Ld^2/(L*Ls) + 
+                (1 - es/em) * ( L*Lc/(4*Ld*Ls) - Lc^2/(4*Ld*Ls) + 
+                Lc^3/(12*L*Ld*Ls) - L^2/(12*Ld*Ls) + 2*Ld^2/(3*L*Ls) )+
+                es/em*(Lc/(2*Ls) - L/(4*Ls) - Lc^2/(4*L*Ls) + Ld^2/(L*Ls)))
         else
-            Ωc = Ω
+            println("Warning: Lc is out of range")
         end
     elseif Ld >= Ls
-        Ωc = Ω
+        Ωc = Ω*Icr/Itr + (1-Icr/Itr)*
+            (1 - 2*Ls*L + (1 - es/em)*( L*Lc/(4*Ld*Ls) - Lc^2/(4*Ld*Ls) +
+            Lc^3/(12*L*Ld*Ls) - L^2/(12*Ld*Ls) + Ld/L - 2*Ls^2/(3*L*Ld)) +
+            es/em*(Lc^2/(4*L*Ls) - L/(4*Ls) + 2*Ld/L -Ls/Ls ))
+    else
+        println("Warning: Ld is out of range")
     end
     return Ωc
+end
+
 """
+(25)
+"""
+function getDeltamid()
+    first_term = M*L^2/(6*Ec*Ie)*(3/4 - (Ls/L)^2)
+    second_term = fps*Aps/(Ec*Ie)*( e*L^2/8 - (e-es)*Ld^2/6)
+end 
+
+"""
+(26)
+Mdec is decompression moment
+"""
+function getIe()
+    first_term = ((Mcr- Mdec)/(M-Mdec))^3*Itr
+    second_term = 1 - ((Mcr- Mdec)/(M-Mdec))^3*Icr
+
+    return clamp( first_term + second_term, 0, Itr)
+end
