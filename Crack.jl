@@ -171,11 +171,14 @@ end
 function getDeltamid()
     first_term = M*L^2/(6*Ec*Ie)*(3/4 - (Ls/L)^2)
     second_term = fps*Aps/(Ec*Ie)*( e*L^2/8 - (e-es)*Ld^2/6)
+    return first_term + second_term
 end 
 
 """
 (26)
 Mdec is decompression moment
+is the moment from externally post tension 
+Mdec  = fpe*Aps*em
 """
 function getIe()
     first_term = ((Mcr- Mdec)/(M-Mdec))^3*Itr
@@ -183,3 +186,78 @@ function getIe()
 
     return clamp( first_term + second_term, 0, Itr)
 end
+
+"""
+(27)
+This function is similar to linear uncrack
+"""
+
+"""
+(28)
+dps0 : initial effective ost tension dendon depth
+"""
+function getDps()
+    K1 = Ls/L-1 
+    K2 = 0.0
+
+    dps = dps0 + M*L^2/(6*Ec*Ie)*(3*Ld/L*(-K1) -3/4 - K2) +
+        fps*Aps/(Ec*Ie)* e *(L^2/8 - L*Ld/2 + Ld^2/2)
+
+    return dps
+end
+
+#iteration procedure starts here. 
+
+P_lb = 0:10:4000  #[lb]
+P_N  = 4.448*P_lb # [N]
+P = P_N
+
+#given M
+M = P*Ls/2.0
+
+
+#assume value of Icr and fps
+Icr = I #total uncrack moment of inertia
+Icr_cale = I #dummy
+fps = fpe 
+
+
+
+conv = 1 
+counter = 0 
+while conv2 > 1e-6
+while conv1 > 1e-6
+    counter += 1 
+    if counter > 1000
+        println("Warning: iteration did not converge")
+        break
+    end
+Icr = Icr_calc
+Ωc = getΩ2(Mat, Sec, Lc)
+dps = getDps()
+#calculate c -> have to work on this 
+c = 100 
+
+Icr_calc = 20 #calculate Icr 
+
+#check convergence of Icr and Icr_calc
+conv1 = abs(Icr_calc -Icr) / Icr
+
+#eq 26 27 28
+Ie = 
+e = 
+dps = 
+
+fps_calc = getFps2()
+
+conv2 = abs(fps_calc - fps) / fps
+fps = fps_calc
+end
+end
+
+δmid = getDeltamid()
+
+println("δmid = ", δmid)
+
+
+
