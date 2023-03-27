@@ -26,8 +26,9 @@ begin
 #Units N, mm, MPa
 
 #   Material Properties
-    fc′= 60. # Concrete strength [MPa] ****Should update on the test day using cylinder test***
+    fc′= 36. # Concrete strength [MPa] from the cylinder test
     Ec = 4700.0*sqrt(fc′) # MPa  ACI fc-> Concrete modulus relationship [MPa]
+    Ec = 58000. #from test data
     Eps = 70000.0 #Post tensioning steel modulus [MPa]
     fpy = 0.002*Eps #MPa  
     #Safe load on the website https://www.engineeringtoolbox.com/wire-rope-strength-d_1518.html 
@@ -132,7 +133,7 @@ displacements_mid_pos = zeros(length(M))
 iteration_exceeded = zeros(length(M)) 
 
 fps = fpe # initial guess of the stress in the tendons.
-fps_old = fpe #will have to update at the end as the current fps and use that in the next loop.
+global fps_old = fpe #will have to update at the end as the current fps and use that in the next loop.
 max_it = 10000
 fps_sub_hist = zeros(max_it)
 fps_history = zeros(length(M))

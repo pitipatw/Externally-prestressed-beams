@@ -16,7 +16,9 @@ end
 #plot A vs list_c and list_I using Makie
 using Makie , GLMakie
 scene = Scene()
-lines!(scene, A, list_c, color = :red)
+# figure1 = Figure()
+GLMakie.plot!(scene, A, list_c, color = :red)
+# lines!(figure1, A, list_c, color = :red)
 # lines!(scene, A, list_I, color = :blue)
 display(scene)
 
