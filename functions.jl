@@ -76,14 +76,15 @@ end
 """
 (23)
 """
-function getFps2(Mat::Material , Sec::Section, f::Loads , Ωc::Float64, c::Float64, dps::Float64)
+function getFps2(Mat::Material , Sec::Section, f::Loads , Ωc::Float64, c::Float64, dps::Float64, fc::Float64)
 
     @unpack fc′, Ec, Eps, fpy = Mat
     @unpack em, es, em0, Aps, Atr, Itr, Zb = Sec
     @unpack w, mg, fr, r, fpe, ϵpe, ϵce = f
-
+    #fc is suppose to be the stress in top concrete fiber, 
+    # use constitution equation to get the stress in the top concrete fiber
     first_term = Eps*(ϵpe + Ωc*ϵce)
-    second_term = Ωc*fc′*Eps/Ec*(dps/c-1)
+    second_term = Ωc*fc*Eps/Ec*(dps/c-1)
     fps = first_term + second_term
     if fps > fpy
         return fpy
@@ -115,8 +116,7 @@ end
 (21)
 """
 function getΩc( Ω::Float64, Icr::Float64, Lc::Float64, Sec::Section)
-    @unpack fc′, Ec, Eps, fpy = Mat
-    @unpack em, es, L, Ld, Ls = Sec
+    @unpack em, es, L, Ld, Ls, Itr = Sec
     # will have to add more variable to each structure.
     # println("In getOmega_c")
     # println("Ld = $Ld")

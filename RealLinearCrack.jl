@@ -35,7 +35,7 @@ end
 #iteration procedure starts here. 
 
 #setup test values
-st = 500.0
+st = 50.0
 P_lb = 0:st:4000  #[lb]
 P_N  = 4.448*P_lb # [N]
 P = P_N
@@ -49,6 +49,7 @@ dps_history = zeros(length(P))
 Icr_history = zeros(length(P))
 Ie_history = zeros(length(P))
 c_history = zeros(length(P))
+dis_history = zeros(length(P))
 end
 #Assume
 begin
@@ -67,10 +68,13 @@ end
 c  = 0
 A_req  = 0 
 Lc = 0
-
+fc = 0.0
+δ_mid = 0
 fig_monitor = Figure(resolution = (1200, 800))
 axs_monitor = [Axis(fig_monitor[i, 1]) for i in 1:3]
 # workflow follows fig 7 in the paper.
+
+
 conv1 = 1
 counter1 = 0
 counter2 = 0
@@ -82,6 +86,7 @@ for i in eachindex(M)
     # println(Lc)
     # break
     counter1 = 0
+    conv1 = 1
     while conv1 > 1e-6
         counter1 += 1 
         if counter1 > 1000
@@ -90,7 +95,6 @@ for i in eachindex(M)
         end
         # println("HI")
         #assume value of Itr and fps
-
 
         conv2 = 1
         counter2 = 0
@@ -103,12 +107,8 @@ for i in eachindex(M)
             end
 
             Ωc = getΩc(Ω, Icr, Lc, Sec)
-            #Neutral axis depth (c) calculation 
-            # this might be wrong, need to check
-            # @show fps
-            # @show ps_force = Ωc*Aps*fps
             ps_force_i = Ωc*Aps*fps
-            Ac_req = ps_force_i / 0.85/fc′
+            Ac_req = ps_force_i /0.85/fc′
             c = get_C(Ac_req)
             #calculate Icr
             Icr_calc = get_Icrack(c)
@@ -127,15 +127,18 @@ for i in eachindex(M)
         # println("Ie/Icr" , Ie/Icr)
         Δ, δ_mid , e = getDelta(Mat, Sec, f, Ie, Mi, em,fps)
         dps = dps0 - Δ
-        fps_calc = getFps2(Mat, Sec, f , Ωc, c, dps)
+        fc = fps/Eps/Ωc*c/(dps-c)
+        println(fc)
+        @assert fc <= 0.003
+        fps_calc = getFps2(Mat, Sec, f , Ωc, c, dps, fc)
         conv1 = abs(fps_calc - fps) / fps
         fps = fps_calc
         #plot convergence of fps, icr and dps using Makie
 
     end
-    scatter!(axs_monitor[1], [Mi], [Icr], color = :red)
+    scatter!(axs_monitor[1], [Mi], [dps], color = :red)
     scatter!(axs_monitor[2], [Mi], [fps], color = :red)
-    scatter!(axs_monitor[3], [Mi], [Ωc ], color = :red)
+    scatter!(axs_monitor[3], [P[i]], [δ_mid], color = :red)
     # δmid = getDeltamid()
     #record the history
     fps_history[i] = fps
@@ -143,19 +146,22 @@ for i in eachindex(M)
     Icr_history[i] = Icr
     Ie_history[i] = Ie
     c_history[i] = c
+    dis_history[i] = δ_mid
 end
-            
 
+df = CSV.File(joinpath(@__DIR__,"pixelframe_beam1.csv"))
+df = DataFrame(df)
+test_P = df[!,2]
+test_d = df[!,3]
 
+dis_in = dis_history/25.4
 
-figure = Figure(resolution = (800, 600))
-ax = Axis(figure[1, 1], xlabel = "Iteration", ylabel = "fps")
-lines!(ax, 1:length(M) , fps_history)
-ax = Axis(figure[1, 2], xlabel = "Iteration", ylabel = "Icr")
-lines!(ax, [counter1,Icr])
-ax = Axis(figure[1, 3], xlabel = "Iteration", ylabel = "dps")
-lines!(ax, [counter1 ,dps])
-display(figure)
-
-
+figure2 = Figure(resolution = (800, 600))
+ax1 = Axis(figure2[1, 1], ylabel = "Load [lb]", xlabel = "Displacement [in]")
+ax2 = Axis(figure2[2, 1], ylabel = "fps[MPa]", xlabel = "Displacement [in]")
+plot!(ax1,dis_in[1:end-30],P_lb[1:end-30], label = "calc", color = :blue)
+plot!(ax1,test_d,test_P, label = "test", color = :red)
+plot!(ax2, dis_in, fps_history, label = "fps", color = :blue)
+display(figure2)
+axislegend()
 #plot 
