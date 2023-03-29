@@ -36,22 +36,31 @@ Need Mcr equation
 
 #iteration procedure starts here. 
 
-P_lb = 0:10:4000  #[lb]
+#setup test values
+P_lb = 0:1000:4000  #[lb]
 P_N  = 4.448*P_lb # [N]
 P = P_N
 #given M
 M = P*Ls/2.0
 
+#set up history containers
+fps_history = zeros(length(P))
+dps_history = zeros(length(P))
+Icr_history = zeros(length(P))
+Ie_history = zeros(length(P))
+c_history = zeros(length(P))
+
 #Assume
-Icr_old = Itr
-fps_old = fpe
-dps_old = dps0
+Icr = Itr
+fps = fpe
+dps = dps0
 Ω =  getOmega(Sec)
 Mcr = getMcr(Mat, Sec, f, Ω)
 Ie = 2
 # workflow follows fig 7 in the paper.
 conv1 = 1
-counter = 0
+counter1 = 0
+counter2 = 0
 for i in eachindex(M)
     Mi = M[i] 
 
@@ -68,9 +77,7 @@ for i in eachindex(M)
         end
         # println("HI")
         #assume value of Itr and fps
-        Icr = Icr_old
-        fps = fps_old
-        dps = dps_old
+
 
         conv2 = 1
         counter2 = 0
@@ -111,21 +118,28 @@ for i in eachindex(M)
         conv2 = abs(fps_calc - fps) / fps
         fps = fps_calc
         #plot convergence of fps, icr and dps using Makie
-        figure = Figure(resolution = (800, 600))
-        ax = Axis(figure[1, 1], xlabel = "Iteration", ylabel = "fps")
-        lines!(ax, fps)
-        ax = Axis(figure[1, 2], xlabel = "Iteration", ylabel = "Icr")
-        lines!(ax, Icr)
-        ax = Axis(figure[1, 3], xlabel = "Iteration", ylabel = "dps")
-        lines!(ax, dps)
-        display(figure)
-        
+
     end
+
     # δmid = getDeltamid()
     #record the history
+    fps_history[i] = fps
+    dps_history[i] = dps
+    Icr_history[i] = Icr
+    Ie_history[i] = Ie
+    c_history[i] = c
+
 
 end
             
+figure = Figure(resolution = (800, 600))
+ax = Axis(figure[1, 1], xlabel = "Iteration", ylabel = "fps")
+lines!(ax, 1:length(M) , fps_history)
+ax = Axis(figure[1, 2], xlabel = "Iteration", ylabel = "Icr")
+lines!(ax, [counter1,Icr])
+ax = Axis(figure[1, 3], xlabel = "Iteration", ylabel = "dps")
+lines!(ax, [counter1 ,dps])
+display(figure)
 
 
 #plot 
