@@ -35,7 +35,10 @@ function get_Icrack(C::Float64)
     Icrack_data = data[:,2]
     #get the index of the closest value of C
     index = findmin(abs.(C_data .- C))[2]
+    #get the Icrack value by interpolate between the two closest values of C
+    Ci = C_data[index]
+    Ci_1 = C_data[index+1] #the next calue of C
     #get the Icrack value
-    Icrack = Icrack_data[index]
+    Icrack = Icrack_data[index]+(Icrack_data[index+1] - Icrack_data[index])/(Ci_1 - Ci)*(C - Ci)
     return Icrack
 end
