@@ -45,6 +45,7 @@ begin
     r = sqrt(Itr / Atr) # Radius of gyration [mm]
     ps_force = 890.0/sin(24.0*pi/180.0)
          # Post tensioning force [N]
+    Mdec = ps_force*em
     concrete_force = ps_force*cos(24.0*pi/180.0)
     fpe = ps_force/Aps # Effective post tensioning stress [MPa] ***will input the one on the test day***
     ϵpe = fpe / Eps # Effective post tensioning strain [mm/mm]
@@ -55,7 +56,7 @@ end
 begin
     # Constructing types
     # Material Properties
-    struct Material
+    mutable struct Material
         fc′::Float64 # Concrete strength [MPa] ****Should update on the test day using cylinder test***
         Ec::Float64 # MPa  ACI fc-> Concrete modulus relationship [MPa]
         Eps::Float64 #Post tensioning steel modulus [MPa]
@@ -64,7 +65,7 @@ begin
         # is ~ 150 MPa. Currently 140 MPa :)
     end
 
-    struct Section
+    mutable struct Section
         em::Float64 # Eccentricity at the middle of the member [mm]
         es::Float64 # Eccentricity at the support of the member   [mm]
         em0::Float64 # Initial eccentricity at the midspan        [mm]
@@ -81,7 +82,7 @@ begin
 
     end
 
-    struct Loads
+    mutable struct Loads
         w::Float64 # Selfweight [N/mm]
         mg::Float64 # Moment due to selfweight [Nmm]
         fr::Float64 # Concrete cracking strenght [MPa]
@@ -90,6 +91,7 @@ begin
         fpe::Float64 # Effective post tensioning stress [MPa]
         ϵpe::Float64 # Effective post tensioning strain [-]
         ϵce::Float64 # Effective concrete strain [-]
+        Mdec::Float64 # decompression moment [Nmm]
 
     end
 
@@ -98,7 +100,63 @@ end
 # Create structs
 Mat = Material(fc′, Ec, Eps, fpy)
 Sec = Section(em, es, em0, dps0, Ls, Ld, L, Aps, Atr, Itr, Zb)
-f   = Loads(w, mg, fr, r, fpe, ϵpe, ϵce)
+f   = Loads(w, mg, fr, r, fpe, ϵpe, ϵce, Mdec)
+
+"""
+(3) 
+Only calculate once
+"""
+function getMcr(Mat::Material, Sec::Section, f::Loads, Ω::Float64 ) 
+    @unpack fc′, Ec, Eps, fpy = Mat
+    @unpack Aps, Atr, Itr, Zb, em = Sec
+    @unpack w, mg, fr, r, fpe = f
+
+    
+    @show mcre = Aps*fpe*(em + Zb/Atr) + (fr * Zb) # Cracking moment due to initial effective prestress (mcre)
+    @assert mcre > 0 # mcre should be positive
+    @show dmcr = (Aps*em*(em + Zb/Atr)*(mcre - mg)) / ((1/Ω*Itr*Ec/Eps) + Aps*(r^2-em*Zb/Atr)) # Moment due to stress increase in external tendons.
+    @assert dmcr > 0
+    mcr = mcre + dmcr
+    return mcr
+end
+"""
+(12)
+"""
+function getDelta(Mat::Material, Sec::Section, f::Loads, Itr::Float64, M::Float64, e::Float64, fps::Float64)
+
+    @unpack fc′, Ec, fpy = Mat
+    @unpack Aps, Atr, Zb, em, es, Ls, Ld, L = Sec
+    @unpack w, mg, fr, r, fpe = f
+    
+    #displacement 
+    # due to the PS force
+    #at mid span
+    δ_mid⁻ = fps*Aps/(Ec*Itr) * (em * L^2 / 8 - (em-es)*Ls^2/6)
+    # at deviator 
+    δ_dev⁻ = fps*Aps/(Ec*Itr)*(es*Ls^2/6 + em*(L*Ls/2-2/3*Ls^2))
+
+    # due to the applied force
+    #at the mid span
+    δ_mid⁺ = M*L^2/(6*Ec*Itr)*(3/4-(Ls/L)^2)
+    # at a deviator
+    δ_dev⁺ = M*L^2/(6*Ec*Itr)*( 3*(Ls/L)*(1-Ls/L)-(Ls/L)^2)
+
+    δ_mid = δ_mid⁺ - δ_mid⁻
+
+    δ_mid_cal = M*L^2/(6*Ec*Itr)*(3/4-(Ls/L)^2) - fps*Aps/(Ec*Itr) * (e * L^2 / 8 - (e-es)*Ls^2/6)
+    # @show Itr
+    # @show δ_mid, δ_mid_cal
+    @assert abs(δ_mid - δ_mid_cal) < 1e-6
+    Δ = δ_mid - (δ_dev⁺ - δ_dev⁻)
+    K1 = Ls/L-1 
+    K2 = 0.0
+    Δcalc = M*L^2/(6*Ec*Itr)*(3 * (Ls/L) * K1 + 3/4 + K2) - fps*Aps*e/(Ec*Itr)*(L^2/8 - L*Ls/2 + Ls^2/2)
+
+    # @show Δ - Δcalc
+    @assert abs(Δ - Δcalc) < 1e-9
+    e = (em + M*L^2/(6*Ec*Itr)*(3/4-(Ls/L)^2)) / (1 - fps*Aps/(Ec*Itr) * (L^2/8 - L*Ld/2 +Ld^2/2))
+    return Δ, δ_mid , e 
+end
 
 """
 (19)
@@ -141,7 +199,8 @@ end
 """
 (20)
 """
-function getLc()
+function getLc(Sec::Section , Mcr::Float64, M::Float64)
+    @unpack Ls, L = Sec
     Lc = L - 2*Ls*Mcr/M 
     if Lc < L-2*Ls
         return L-2*Ls
@@ -159,13 +218,15 @@ end
 """
 (21)
 """
-function getΩc( Mat::Material, Sec::Section, Lc::Float64)
+function getΩc( Ω::Float64, Icr::Float64, Lc::Float64, Sec::Section)
     @unpack fc′, Ec, Eps, fpy = Mat
-    @unpack em, es, em0, Aps, Atr, Itr, Zb = Sec
-    @unpack w, mg, fr, r, fpe = Loads
+    @unpack em, es, L, Ld, Ls = Sec
     # will have to add more variable to each structure.
+    # println("In getOmega_c")
+    # println("Ld = $Ld")
+    # println("Ls = $Ls")
+    # println("L = $L")
 
-    Ω =  getOmega(Sec)
     if Ld < Ls 
         if (L - 2*Ls) < Lc < (L - 2*Ld)
             Ωc = Ω*Icr/Itr + (1-Icr/Itr)*
@@ -181,12 +242,17 @@ function getΩc( Mat::Material, Sec::Section, Lc::Float64)
         end
     elseif Ld >= Ls
         Ωc = Ω*Icr/Itr + (1-Icr/Itr)*
-            (1 - 2*Ls*L + (1 - es/em)*( L*Lc/(4*Ld*Ls) - Lc^2/(4*Ld*Ls) +
-            Lc^3/(12*L*Ld*Ls) - L^2/(12*Ld*Ls) + Ld/L - 2*Ls^2/(3*L*Ld)) +
-            es/em*(Lc^2/(4*L*Ls) - L/(4*Ls) + 2*Ld/L -Ls/Ls ))
+            (1 - 2*Ls/L + 
+            (1 - es/em)*( L*Lc/(4*Ld*Ls) - Lc^2/(4*Ld*Ls) +
+            Lc^3/(12*L*Ld*Ls) - L^2/(12*Ld*Ls) + Ld/L - Ls^2/(3*L*Ld)) +
+            es/em*(Lc^2/(4*L*Ls) - L/(4*Ls) + 2*Ld/L - Ls/Ls ))
+        @assert Ωc > 0
     else
         println("Warning: Ld is out of range")
     end
+    # println("Icr", Icr)
+    # println("Itr", Itr)
+    @assert Ωc > 0 
     return Ωc
 end
 
@@ -208,20 +274,20 @@ Mdec  = fpe*Aps*em
 function getIe(Mcr::Float64, Mdec::Float64, M::Float64, Icr::Float64, Itr::Float64)
     first_term = ((Mcr- Mdec)/(M-Mdec))^3*Itr
     second_term = 1 - ((Mcr- Mdec)/(M-Mdec))^3*Icr
-
-    return clamp( first_term + second_term, 0, Itr)
+    # @show first_term + second_term
+    return clamp( abs(first_term + second_term) , 0, Itr)
 end
 
-"""
-(27)
-This function is similar to linear uncrack
-"""
+# """
+# (27)
+# This function is similar to linear uncrack
+# """
 
 """
 (28)
 dps0 : initial effective ost tension dendon depth
 """
-function getDps(dps0::Foloat64, Δ::FLoat64)
+function getDps(dps0::Float64, Δ::Float64)
     K1 = Ls/L-1 
     K2 = 0.0
 

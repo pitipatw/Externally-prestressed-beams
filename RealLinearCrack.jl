@@ -6,8 +6,7 @@ Adopted from
     Chee Khoon Ng, Kiang Hwee Tan.
 """
 # Setting up packages
-using CSV
-using DataFrames
+using CSV, DataFrames
 using UnPack
 using Makie, GLMakie
 
@@ -47,59 +46,86 @@ M = P*Ls/2.0
 Icr_old = Itr
 fps_old = fpe
 dps_old = dps0
+Ω =  getOmega(Sec)
+Mcr = getMcr(Mat, Sec, f, Ω)
+Ie = 2
 # workflow follows fig 7 in the paper.
 conv1 = 1
-conv2 = 1  
-counter = 0 
-while conv1 > 1e-6
-    #assume value of Itr and fps
-    Icr = Icr_old
-    fps = fps_old
-    dps = dps_old
+counter = 0
+for i in eachindex(M)
+    Mi = M[i] 
 
-    while conv2 > 1e-6
-        counter += 1 
-        if counter > 1000
+    println("M = ", Mi)
+    Lc = getLc(Sec,Mcr,Mi)
+    # println(Lc)
+    # break
+    counter1 = 0
+    while conv1 > 1e-6
+        counter1 += 1 
+        if counter1 > 1000
             println("Warning: iteration did not converge")
             break
         end
-        Ωc = getΩc(Mat, Sec, Lc, Icr)
+        # println("HI")
+        #assume value of Itr and fps
+        Icr = Icr_old
+        fps = fps_old
+        dps = dps_old
+
+        conv2 = 1
+        counter2 = 0
+        global c , Ac_req
+        while conv2 > 1e-6
+            # println("counter")
+            counter2 += 1 
+            if counter2 > 1000
+                println("Warning: iteration did not converge")
+                break
+            end
+
+            # @show Ωc = getΩc(Ω, Icr, Lc, Sec)
+            #Neutral axis depth (c) calculation 
+            # this might be wrong, need to check
+            # @show fps
+            # @show ps_force = Ωc*Aps*fps
+            ps_force_i = Ωc*Aps*fps
+            Ac_req = ps_force_i / 0.85/fc′
+            c = get_C(Ac_req)
+            #calculate Icr
+            Icr_calc = get_Icrack(c)
+
+            conv2 = abs(Icr_calc - Icr)/Icr_calc
+
+            Icr = Icr_calc
+        end
+        # println("Icr = ", Icr)
+        # println("Ac_req ", Ac_req)
+        # println("c: ", c)
+        # @show Mcr , Mdec, Mi , Icr, Itr
+        Ie = getIe(Mcr, Mdec, Mi, Icr, Itr)
+        # println("Ie/Icr" , Ie/Icr)
+        Δ, δ_mid , e = getDelta(Mat, Sec, f, Ie, Mi, em,fps)
         
-        #Neutral axis depth (c) calculation 
-        # this might be wrong, need to check
-        ps_force = Aps*fps
-        Ac_req = ps_force / 0.85/fc′
-        c = get_C(Ac_req)
-        #calculate Icr
-        Icr_calc = getIcrack(c)
+        dps = dps0 - Δ
+        fps_calc = getFps2(Mat, Sec, f , Ωc, c, dps)
+        conv2 = abs(fps_calc - fps) / fps
+        fps = fps_calc
+        #plot convergence of fps, icr and dps using Makie
+        figure = Figure(resolution = (800, 600))
+        ax = Axis(figure[1, 1], xlabel = "Iteration", ylabel = "fps")
+        lines!(ax, fps)
+        ax = Axis(figure[1, 2], xlabel = "Iteration", ylabel = "Icr")
+        lines!(ax, Icr)
+        ax = Axis(figure[1, 3], xlabel = "Iteration", ylabel = "dps")
+        lines!(ax, dps)
+        display(figure)
         
-        conv2 = abs(Icr_calc - Icr)/Icr_calc
+    end
+    # δmid = getDeltamid()
+    #record the history
 
-        
-
-
-
-
-Icr_calc = 20 #calculate Icr 
-
-#check convergence of Icr and Icr_calc
-conv1 = abs(Icr_calc -Icr) / Icr
-
-#eq 26 27 28
-Ie = 
-e = 
-dps = 
-
-fps_calc = getFps2()
-
-conv2 = abs(fps_calc - fps) / fps
-fps = fps_calc
 end
-end
-
-δmid = getDeltamid()
-
-println("δmid = ", δmid)
+            
 
 
-
+#plot 
