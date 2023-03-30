@@ -59,21 +59,23 @@ dps = dps0
 Ω =  getOmega(Sec)
 #we could do Mcr = 0 , becuase we crack at the begining anyway. 
 Mcr = getMcr(Mat, Sec, f, Ω)
-Mcr = 0.1
+# Mcr = 10.0
 Ie = Icr
 end
 
 #These lines just to make the variables global
 Ωc = 0
 c  = 0
-A_req  = 0 
+Ac_req  = 0 
 Lc = 0
 fc = 0.0
 δ_mid = 0
-fig_monitor = Figure(resolution = (1200, 800))
-axs_monitor = [Axis(fig_monitor[i, 1]) for i in 1:3]
-# workflow follows fig 7 in the paper.
 
+begin
+title_name = [ "dps", "fps", "DisMid", "c", "Inertia(s)"]
+fig_monitor = Figure(resolution = (1200, 2000))
+axs_monitor = [Axis(fig_monitor[i, 1], title = title_name[i]) for i in 1:5]
+# workflow follows fig 7 in the paper.
 
 conv1 = 1
 counter1 = 0
@@ -130,15 +132,14 @@ for i in eachindex(M)
         fc = fps/Eps/Ωc*c/(dps-c)
         println(fc)
         @assert fc <= 0.003
-        fps_calc = getFps2(Mat, Sec, f , Ωc, c, dps, fc)
+        @show fps_calc = getFps2(Mat, Sec, f , Ωc, c, dps, fc)
         conv1 = abs(fps_calc - fps) / fps
         fps = fps_calc
         #plot convergence of fps, icr and dps using Makie
 
     end
-    scatter!(axs_monitor[1], [Mi], [dps], color = :red)
-    scatter!(axs_monitor[2], [Mi], [fps], color = :red)
-    scatter!(axs_monitor[3], [P[i]], [δ_mid], color = :red)
+
+    
     # δmid = getDeltamid()
     #record the history
     fps_history[i] = fps
@@ -149,6 +150,22 @@ for i in eachindex(M)
     dis_history[i] = δ_mid
 end
 
+scatter!(axs_monitor[1], P, dps_history, color = :red)
+scatter!(axs_monitor[2], P, fps_history, color = :red)
+scatter!(axs_monitor[3], P, dis_history, color = :red)
+scatter!(axs_monitor[4], P, c_history, color = :red)
+scatter!(axs_monitor[5], P, Ie_history, color = :red ,label = "Ie")
+scatter!(axs_monitor[5], P, Icr_history, color = :blue, label= "Icr")
+axislegend()
+display(fig_monitor)
+
+end
+
+
+
+
+#compare the result with the test data.
+begin
 df = CSV.File(joinpath(@__DIR__,"pixelframe_beam1.csv"))
 df = DataFrame(df)
 test_P = df[!,2]
@@ -165,3 +182,5 @@ plot!(ax2, dis_in, fps_history, label = "fps", color = :blue)
 display(figure2)
 axislegend()
 #plot 
+
+end
