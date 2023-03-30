@@ -58,7 +58,8 @@ fps = fpe
 dps = dps0
 Ω =  getOmega(Sec)
 #we could do Mcr = 0 , becuase we crack at the begining anyway. 
-Mcr = getMcr(Mat, Sec, f, Ω)
+Mcr = getMcr(Mat, Sec, f, Ω)/2
+Mcr = 0.00001
 # Mcr = 10.0
 Ie = Icr
 end
@@ -109,7 +110,7 @@ for i in eachindex(M)
             end
 
             Ωc = getΩc(Ω, Icr, Lc, Sec)
-            ps_force_i = Ωc*Aps*fps
+            ps_force_i = Aps*fps
             Ac_req = ps_force_i /0.85/fc′
             c = get_C(Ac_req)
             #calculate Icr
@@ -156,6 +157,10 @@ scatter!(axs_monitor[3], P, dis_history, color = :red)
 scatter!(axs_monitor[4], P, c_history, color = :red)
 scatter!(axs_monitor[5], P, Ie_history, color = :red ,label = "Ie")
 scatter!(axs_monitor[5], P, Icr_history, color = :blue, label= "Icr")
+#add verticle line on each plot for Mcr
+for i in 1:5
+    vlines!(axs_monitor[i], [Mcr*2/Ls], color = :black, label = "Mcr")
+end
 axislegend()
 display(fig_monitor)
 
