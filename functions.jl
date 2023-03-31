@@ -50,7 +50,10 @@ function getDelta(Mat::Material, Sec::Section, f::Loads, Itr::Float64, M::Float6
 
     # @show Δ - Δcalc
     @assert abs(Δ - Δcalc) < 1e-9
-    e = (em + M*L^2/(6*Ec*Itr)*(3/4-(Ls/L)^2)) / (1 - fps*Aps/(Ec*Itr) * (L^2/8 - L*Ld/2 +Ld^2/2))
+    # e = (em + M*L^2/(6*Ec*Itr)*(3/4-(Ls/L)^2)) / (1 - fps*Aps/(Ec*Itr) * (L^2/8 - L*Ld/2 +Ld^2/2))
+    e = (em + M*L^2/(6*Ec*Itr)*(3*Ld/L*(-K1)-3/4-K2)) / (1 - fps*Aps/(Ec*Itr) * (L^2/8 - L*Ld/2 +Ld^2/2))
+    # println(e, e1)
+    # @assert e == e1
     return Δ, δ_mid , e 
 end
 
@@ -168,8 +171,9 @@ is the moment from externally post tension
 Mdec  = fpe*Aps*em
 """
 function getIe(Mcr::Float64, Mdec::Float64, M::Float64, Icr::Float64, Itr::Float64)
-    first_term = ((Mcr- Mdec)/(M-Mdec))^3*Itr
-    second_term = 1 - ((Mcr- Mdec)/(M-Mdec))^3*Icr
+    k = (Mcr - Mdec)/(M - Mdec)
+    first_term = k^3*Itr
+    second_term = (1 - k^3)*Icr
     # @show first_term + second_term
     return clamp( abs(first_term + second_term) , 0, Itr)
 end

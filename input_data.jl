@@ -20,7 +20,7 @@ begin
 
     # PixelFrame section/element properties
     centroid_to_top = 91.5 #[mm]
-    em = 228.9 # Eccentricity at the middle of the member [mm]
+    em = 230.0 # Eccentricity at the middle of the member [mm]
     es = 0.0 # Eccentricity at the support of the member   [mm]
     em0 = em # Initial eccentricity at the midspan        [mm]
     dps0 = centroid_to_top + em0 # Initial distance from the top to the point of application of the load [mm]
@@ -43,7 +43,7 @@ begin
     mg = w * L^2 / 8.0 # Moment due to selfweight [Nmm]
     fr = 0.7 * sqrt(fc′) # Concrete cracking strenght [MPa]
     r = sqrt(Itr / Atr) # Radius of gyration [mm]
-    ps_force = 890.0/sin(24.0*pi/180.0)
+    ps_force = 890.0/sind(24.0)
          # Post tensioning force [N]
     Mdec = ps_force*em
     concrete_force = ps_force*cos(24.0*pi/180.0)
