@@ -34,8 +34,8 @@ end
 
 #setup test values
 begin
-    st = 5.0 #step size of the force  inputs
-    P_lb = 0:st:4000  #[lb]
+    st = 10.0 #step size of the force  inputs
+    P_lb = 0:st:8300  #[lb]
     P_N  = 4.448*P_lb # [N]
     P = P_N
     #given M inputs
@@ -60,10 +60,10 @@ fps = fpe
 dps = dps0
 Ω =  getOmega(Sec)
 #we could do Mcr = 0 , becuase we crack at the begining anyway. 
-Mcr = getMcr(Mat, Sec, f, Ω)/2
-Mcr = 0.00001
+Mcr = getMcr(Mat, Sec, f, Ω)
+# Mcr = 0.00001
 # Mcr = 10.0
-Ie = Icr
+Ie = Itr
 end
 
 #These lines just to make the variables global
@@ -195,7 +195,7 @@ dis_in = dis_history/25.4
 figure2 = Figure(resolution = (800, 600))
 ax1 = Axis(figure2[1, 1], ylabel = "Load [lb]", xlabel = "Displacement [in]")
 ax2 = Axis(figure2[2, 1], ylabel = "fps[MPa]", xlabel = "Displacement [in]")
-plot!(ax1,dis_in[1:end-320],P_lb[1:end-320], label = "calc", color = :blue)
+plot!(ax1,dis_in[1:end],P_lb[1:end].-3800, label = "calc", color = :blue)
 plot!(ax1,test_d,test_P, label = "test", color = :red)
 plot!(ax2, dis_in, fps_history, label = "fps", color = :blue)
 display(figure2)
