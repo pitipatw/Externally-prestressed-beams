@@ -43,7 +43,11 @@ function getDelta(Mat::Material, Sec::Section, f::Loads, Itr::Float64, M::Float6
     # @show Itr
     # @show δ_mid, δ_mid_cal
     @assert abs(δ_mid - δ_mid_cal) < 1e-6
+    δ_dev = δ_dev⁺ - δ_dev⁻
+    
     Δ = δ_mid - (δ_dev⁺ - δ_dev⁻)
+    @assert Δ == δ_mid - δ_dev
+
     K1 = Ls/L-1 
     K2 = 0.0
     Δcalc = M*L^2/(6*Ec*Itr)*(3 * (Ls/L) * K1 + 3/4 + K2) - fps*Aps*e/(Ec*Itr)*(L^2/8 - L*Ls/2 + Ls^2/2)
@@ -54,7 +58,7 @@ function getDelta(Mat::Material, Sec::Section, f::Loads, Itr::Float64, M::Float6
     e = (em + M*L^2/(6*Ec*Itr)*(3*Ld/L*(-K1)-3/4-K2)) / (1 - fps*Aps/(Ec*Itr) * (L^2/8 - L*Ld/2 +Ld^2/2))
     # println(e, e1)
     # @assert e == e1
-    return Δ, δ_mid , e 
+    return δ_mid, δ_dev , e 
 end
 
 """

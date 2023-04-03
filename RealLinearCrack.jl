@@ -8,16 +8,16 @@ Adopted from
 # Setting up packages
 using CSV, DataFrames
 using UnPack
-using Makie, GLMakie
+using Makie, GLMakie 
 
 # Setting up the data
 begin
-include("input_data.jl")
-include("functions.jl")
-include("Interpolate.jl")
+    include("input_data.jl")
+    include("functions.jl")
+    include("Interpolate.jl")
 end
 
-
+# *from the paper
 # Since sections are usually under-reinforced, the behavior will govern by the steel yielding. 
 # Therefore, the nonlinear behavior of the concrete is neglected.
 
@@ -30,29 +30,28 @@ end
 # Units N, mm, MPa
 
 
-
-
 #iteration procedure starts here. 
 
 #setup test values
 begin
-st = 5.0
-P_lb = 0:st:4000  #[lb]
-P_N  = 4.448*P_lb # [N]
-P = P_N
-#given M
-M = P*Ls/2.0
+    st = 5.0 #step size of the force  inputs
+    P_lb = 0:st:4000  #[lb]
+    P_N  = 4.448*P_lb # [N]
+    P = P_N
+    #given M inputs
+    M = P*Ls/2.0
 end
 
 #set up history containers
 begin
-fps_history = zeros(length(P))
-dps_history = zeros(length(P))
-Icr_history = zeros(length(P))
-Ie_history = zeros(length(P))
-c_history = zeros(length(P))
-dis_history = zeros(length(P))
-fc_history = zeros(length(P))
+    fps_history = zeros(length(P))
+    dps_history = zeros(length(P))
+    Icr_history = zeros(length(P))
+    Ie_history  = zeros(length(P))
+    c_history   = zeros(length(P))
+    dis_history = zeros(length(P))
+    dis_dev_history = zeros(length(P))
+    fc_history  = zeros(length(P))
 end
 #Assume
 begin
@@ -68,14 +67,17 @@ Ie = Icr
 end
 
 #These lines just to make the variables global
+begin
 Ωc = 0
 c  = 0
 Ac_req  = 0 
 Lc = 0
 fc = 0.0
 δ_mid = 0
+δ_dev = 0
 fc = 0.0
 Mi = 0
+end
 begin
 title_name = [ "dps", "fps", "DisMid", "c", "Inertia(s)", "withTest"]
 fig_monitor = Figure(resolution = (1200, 2000))
@@ -88,6 +90,7 @@ counter2 = 0
 for i in eachindex(M)
     Mi = M[i] 
     Lc = getLc(Sec,Mcr,Mi)
+    # Lc = L/2
     # println(Lc)
     # break
     counter1 = 0
@@ -130,9 +133,9 @@ for i in eachindex(M)
         # @show Mcr , Mdec, Mi , Icr, Itr
         Ie = getIe(Mcr, Mdec, Mi, Icr, Itr)
         # println("Ie/Icr" , Ie/Icr)
-        Δ, δ_mid , e = getDelta(Mat, Sec, f, Ie, Mi, em,fps)
-        dps = dps0 - Δ
-        fc = fps/Eps/Ωc*c/(dps-c) + Mi/Ie*c
+        δ_mid, δ_dev , e  = getDelta(Mat, Sec, f, Ie, Mi, em,fps)
+        dps = dps0 - (δ_mid - δ_dev)
+        fc = fps/Eps*c/(dps-c) + Mi/Itr*c
         # println("fc: ", fc)
         # @assert fc <= 0.003
         fps_calc = getFps2(Mat, Sec, f , Ωc, c, dps, fc)
@@ -152,12 +155,14 @@ for i in eachindex(M)
     c_history[i] = c
     dis_history[i] = δ_mid
     fc_history[i] = fc
+    dis_dev_history[i] = δ_dev
 end
 
 scatter!(axs_monitor[1], P, dps_history, color = :red)
 scatter!(axs_monitor[2], P, fps_history, color = :red)
 scatter!(axs_monitor[2], P, fc_history, color = :blue)
 scatter!(axs_monitor[3], P, dis_history, color = :red)
+scatter!(axs_monitor[3], P, dis_dev_history, color = :blue)
 scatter!(axs_monitor[4], P, c_history, color = :red)
 scatter!(axs_monitor[5], P, Ie_history, color = :red ,label = "Ie")
 scatter!(axs_monitor[5], P, Icr_history, color = :blue, label= "Icr")
@@ -168,6 +173,7 @@ for i in 1:5
     vlines!(axs_monitor[i], [Mdec*2/Ls], color = :green, label = "Mdec")
 end
 
+#add legend
 axislegend()
 display(fig_monitor)
 
@@ -183,12 +189,13 @@ df = DataFrame(df)
 test_P = df[!,2]
 test_d = df[!,3]
 
+# convert to mm and in
 dis_in = dis_history/25.4
 
 figure2 = Figure(resolution = (800, 600))
 ax1 = Axis(figure2[1, 1], ylabel = "Load [lb]", xlabel = "Displacement [in]")
 ax2 = Axis(figure2[2, 1], ylabel = "fps[MPa]", xlabel = "Displacement [in]")
-plot!(ax1,dis_in[1:end-300],P_lb[1:end-300], label = "calc", color = :blue)
+plot!(ax1,dis_in[1:end-320],P_lb[1:end-320], label = "calc", color = :blue)
 plot!(ax1,test_d,test_P, label = "test", color = :red)
 plot!(ax2, dis_in, fps_history, label = "fps", color = :blue)
 display(figure2)
@@ -196,3 +203,4 @@ axislegend()
 #plot 
 
 end
+
